@@ -42,6 +42,7 @@ func main() {
 	flagSet.String("client-secret", "", "the OAuth Client Secret")
 	flagSet.String("authenticated-emails-file", "", "authenticate against emails via file (one per line)")
 	flagSet.String("htpasswd-file", "", "additionally authenticate against a htpasswd file. Entries must be created with \"htpasswd -s\" for SHA encryption")
+	flagSet.String("htpasswd-proxy", "", "additionally authenticate against basic auth URL. ie: \"https://internalapp.yourcompany.com/basicautharea\"")
 	flagSet.Bool("display-htpasswd-form", true, "display username / password login form if an htpasswd file is provided")
 	flagSet.String("custom-templates-dir", "", "path to custom html templates")
 
@@ -100,11 +101,26 @@ func main() {
 
 	if opts.HtpasswdFile != "" {
 		log.Printf("using htpasswd file %s", opts.HtpasswdFile)
-		oauthproxy.HtpasswdFile, err = NewHtpasswdFromFile(opts.HtpasswdFile)
+		htpasswd, err := NewHtpasswdFromFile(opts.HtpasswdFile)
 		oauthproxy.DisplayHtpasswdForm = opts.DisplayHtpasswdForm
 		if err != nil {
 			log.Fatalf("FATAL: unable to open %s %s", opts.HtpasswdFile, err)
 		}
+		oauthproxy.HtpasswdValidator = htpasswd.Validate
+	}
+
+	if opts.HtpasswdProxy != "" {
+		if opts.HtpasswdFile != "" {
+			log.Fatalf("FATAL: can't use htpasswd file and proxy together")
+		}
+
+		log.Printf("using htpasswd proxy %s", opts.HtpasswdProxy)
+		htpasswd, err := NewHtpasswdProxy(opts.HtpasswdProxy)
+		oauthproxy.DisplayHtpasswdForm = opts.DisplayHtpasswdForm
+		if err != nil {
+			log.Fatalf("FATAL: unable to open %s %s", opts.HtpasswdFile, err)
+		}
+		oauthproxy.HtpasswdValidator = htpasswd.Validate
 	}
 
 	u, err := url.Parse(opts.HttpAddress)

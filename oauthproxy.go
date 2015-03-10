@@ -43,7 +43,7 @@ type OauthProxy struct {
 	clientID            string
 	clientSecret        string
 	SignInMessage       string
-	HtpasswdFile        *HtpasswdFile
+	HtpasswdValidator   func(user string, password string) bool
 	DisplayHtpasswdForm bool
 	serveMux            http.Handler
 	PassBasicAuth       bool
@@ -189,7 +189,7 @@ func (p *OauthProxy) GetLoginURL(host, redirect string) string {
 }
 
 func (p *OauthProxy) displayCustomLoginForm() bool {
-	return p.HtpasswdFile != nil && p.DisplayHtpasswdForm
+	return p.HtpasswdValidator != nil && p.DisplayHtpasswdForm
 }
 
 func (p *OauthProxy) redeemCode(host, code string) (string, string, error) {
@@ -321,7 +321,7 @@ func (p *OauthProxy) SignInPage(rw http.ResponseWriter, req *http.Request, code 
 }
 
 func (p *OauthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (string, bool) {
-	if req.Method != "POST" || p.HtpasswdFile == nil {
+	if req.Method != "POST" || p.HtpasswdValidator == nil {
 		return "", false
 	}
 	user := req.FormValue("username")
@@ -330,8 +330,8 @@ func (p *OauthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (st
 		return "", false
 	}
 	// check auth
-	if p.HtpasswdFile.Validate(user, passwd) {
-		log.Printf("authenticated %q via HtpasswdFile", user)
+	if p.HtpasswdValidator(user, passwd) {
+		log.Printf("authenticated %q via manual sign in", user)
 		return user, true
 	}
 	return "", false
@@ -483,7 +483,7 @@ func (p *OauthProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (p *OauthProxy) CheckBasicAuth(req *http.Request) (string, bool) {
-	if p.HtpasswdFile == nil {
+	if p.HtpasswdValidator == nil {
 		return "", false
 	}
 	s := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
@@ -498,7 +498,7 @@ func (p *OauthProxy) CheckBasicAuth(req *http.Request) (string, bool) {
 	if len(pair) != 2 {
 		return "", false
 	}
-	if p.HtpasswdFile.Validate(pair[0], pair[1]) {
+	if p.HtpasswdValidator(pair[0], pair[1]) {
 		log.Printf("authenticated %q via basic auth", pair[0])
 		return pair[0], true
 	}

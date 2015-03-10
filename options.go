@@ -22,6 +22,7 @@ type Options struct {
 	GitHubOrg               string   `flag:"github-org" cfg:"github_org"`
 	GitHubTeam              string   `flag:"github-team" cfg:"github_team"`
 	HtpasswdFile            string   `flag:"htpasswd-file" cfg:"htpasswd_file"`
+	HtpasswdProxy           string   `flag:"htpasswd-proxy" cfg:"htpasswd_proxy"`
 	DisplayHtpasswdForm     bool     `flag:"display-htpasswd-form" cfg:"display_htpasswd_form"`
 	CustomTemplatesDir      string   `flag:"custom-templates-dir" cfg:"custom_templates_dir"`
 
